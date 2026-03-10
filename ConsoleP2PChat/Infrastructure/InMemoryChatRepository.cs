@@ -10,19 +10,24 @@ public class InMemoryChatRepository : IChatRepository
     
     public void AddMessage(string remoteAddress, Message message)
     {
-        if (_messages.TryGetValue(remoteAddress, out List<Message>? messages))
+        lock (_messages)
         {
-            messages.Add(message);
+            if (_messages.TryGetValue(remoteAddress, out List<Message>? messages))
+            {
+                messages.Add(message);
+            }
+            else
+            {
+                _messages[remoteAddress] = [message];
+            }
+
+            MessageAdded?.Invoke(remoteAddress, message);
         }
-        else
-        {
-            _messages[remoteAddress] = [message];
-        }
-        MessageAdded?.Invoke(remoteAddress, message);
     }
     
     public IReadOnlyList<Message> GetMessages(string remoteAddress)
     {
-        return _messages[remoteAddress].AsReadOnly();
+        lock(_messages)
+            return _messages[remoteAddress].AsReadOnly();
     }
 }

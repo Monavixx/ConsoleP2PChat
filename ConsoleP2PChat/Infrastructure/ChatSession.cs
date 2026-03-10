@@ -23,8 +23,10 @@ public class ChatSession : IChatSession, IDisposable
         {
             while (!token.IsCancellationRequested)
             {
+                Console.WriteLine("Waiting for message...");
                 await stream.ReadExactlyAsync(messageSizeBytes, token);
                 int messageSize = BitConverter.ToInt32(messageSizeBytes);
+                Console.WriteLine("Message size: " + messageSize);
                 byte[] message = new byte[messageSize];
                 await stream.ReadExactlyAsync(message, token);
                 await _messageHandler.OnMessageReceived(message, this);
@@ -41,11 +43,11 @@ public class ChatSession : IChatSession, IDisposable
     }
 
     public string RemoteAddress => _tcpClient.Client.RemoteEndPoint.ToString();
-    public async Task SendAsync(byte[] message, CancellationToken token)
+    public async Task SendAsync(byte[] message)
     {
         var stream = _tcpClient.GetStream();
-        await stream.WriteAsync(BitConverter.GetBytes(message.Length), token);
-        await stream.WriteAsync(message, token);
+        await stream.WriteAsync(BitConverter.GetBytes(message.Length));
+        await stream.WriteAsync(message);
     }
 
     public void Dispose()

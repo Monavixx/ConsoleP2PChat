@@ -1,3 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-Console.WriteLine("Hello, World!");
+using ConsoleP2PChat.Presentation;
+
+ConsoleChat cc = new ConsoleChat();
+await cc.Run();
