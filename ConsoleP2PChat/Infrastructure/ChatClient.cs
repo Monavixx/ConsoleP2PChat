@@ -1,39 +1,36 @@
 using System.Net.Sockets;
 using System.Text;
+using ConsoleP2PChat.Application;
+using ConsoleP2PChat.Presentation;
 using Timer = System.Timers.Timer;
 
 namespace ConsoleP2PChat.Infrastructure;
 
-public class ChatClient
+public class ChatClient (ChatContext chatContext, IMessageHandler messageHandler)
 {
     private TcpClient _client = null!;
+    private CancellationTokenSource _tokenSource;
+    private CancellationToken _token;
     public async Task ConnectAndRunAsync(string remoteAddress, int port)
     {
+        _tokenSource = new CancellationTokenSource();
+        _token = _tokenSource.Token;
         if (_client is not null) _client.Close();
         
         _client = new TcpClient();
-        await _client.ConnectAsync(remoteAddress, port);
-        Timer timer = new Timer(3000);
-        timer.AutoReset = true;
-        timer.Elapsed += async (sender, args) =>
-        {
-            var stream = _client.GetStream();
-            byte[] msg = Encoding.UTF8.GetBytes("Hello World!");
-            await stream.WriteAsync(BitConverter.GetBytes(msg.Length));
-            await stream.WriteAsync(msg);
-            stream.FlushAsync();
-        };
-        timer.Start();
-        var stream = _client.GetStream();
-        while (true)
-        {
-            byte[] msgLenBytes = new byte[4];
-            await stream.ReadExactlyAsync(msgLenBytes);
-            byte[] msg = new byte[BitConverter.ToInt32(msgLenBytes)];
-            await stream.ReadExactlyAsync(msg);
-            string message = Encoding.UTF8.GetString(msg);
-            Console.WriteLine(message);
-            if (message == "exit") return;
-        }
+        await _client.ConnectAsync(remoteAddress, port, _token);
+        ChatSession session = new ChatSession(_client, messageHandler);
+        chatContext.CurrentSession = session;
+        await session.RunAsync(_token);
+        session.Dispose();
+        // var stream = _client.GetStream();
+        // while (true)
+        // {
+        //     byte[] msgLenBytes = new byte[4];
+        //     await stream.ReadExactlyAsync(msgLenBytes, _token);
+        //     byte[] msg = new byte[BitConverter.ToInt32(msgLenBytes)];
+        //     await stream.ReadExactlyAsync(msg, _token);
+        //     await messageHandler.OnMessageReceived(msg, chatContext.CurrentSession!);
+        // }
     }
 }

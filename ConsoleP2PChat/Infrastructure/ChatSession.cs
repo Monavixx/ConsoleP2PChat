@@ -23,10 +23,8 @@ public class ChatSession : IChatSession, IDisposable
         {
             while (!token.IsCancellationRequested)
             {
-                Console.WriteLine("Waiting for message...");
                 await stream.ReadExactlyAsync(messageSizeBytes, token);
                 int messageSize = BitConverter.ToInt32(messageSizeBytes);
-                Console.WriteLine("Message size: " + messageSize);
                 byte[] message = new byte[messageSize];
                 await stream.ReadExactlyAsync(message, token);
                 await _messageHandler.OnMessageReceived(message, this);

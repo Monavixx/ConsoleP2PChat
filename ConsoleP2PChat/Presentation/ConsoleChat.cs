@@ -10,7 +10,7 @@ public class ConsoleChat
     private ChatServer _chatServer;
     private IChatRepository _chatRepository;
     ChatContext _chatContext;
-    InputHandler _inputHandler;
+    IInputHandler _inputHandler;
     MessageInput _messageInput;
     
     public ConsoleChat()
@@ -18,9 +18,7 @@ public class ConsoleChat
         _chatRepository = new InMemoryChatRepository();
         _messageHandler = new MessageHandler(_chatRepository);
         _chatContext = new ChatContext();
-        _inputHandler = new InputHandler(_chatRepository, _chatContext);
-        _messageInput = new MessageInput(_inputHandler);
-        _inputHandler.Quited += InputHandlerOnQuited;
+        
         _chatRepository.MessageAdded += ChatRepositoryOnMessageAdded;
     }
 
@@ -64,7 +62,11 @@ public class ConsoleChat
 
     public async Task RunServer()
     {
-        _chatServer = new ChatServer(7654, _messageHandler, _messageInput, _chatContext);
+        _inputHandler = new ServerInputHandler(_chatRepository, _chatContext);
+        _messageInput = new MessageInput(_inputHandler);
+        _inputHandler.Quited += InputHandlerOnQuited;
+        _ = _messageInput.RunAsync();
+        _chatServer = new ChatServer(7654, _messageHandler, _chatContext);
         await _chatServer.StartAsync();
     }
 
@@ -72,9 +74,14 @@ public class ConsoleChat
 
     public async Task RunClient()
     {
-        ChatClient chatClient = new();
+        ChatClient chatClient = new(_chatContext, _messageHandler);
         string address = Console.ReadLine() ?? "";
         int port =  int.Parse(Console.ReadLine() ?? "7654");
+        _inputHandler = new ClientInputHandler(_chatRepository, _chatContext);
+        _inputHandler.Quited += InputHandlerOnQuited;
+        _messageInput = new MessageInput(_inputHandler);
+        _inputHandler.Quited += InputHandlerOnQuited;
+        _ = _messageInput.RunAsync();
         await chatClient.ConnectAndRunAsync(address, port);
     }
     

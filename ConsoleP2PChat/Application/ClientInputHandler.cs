@@ -1,10 +1,9 @@
-using System.Net;
 using System.Text;
 using ConsoleP2PChat.Domain;
 
 namespace ConsoleP2PChat.Application;
 
-public class InputHandler (IChatRepository chatRepository, ChatContext chatContext)
+public class ClientInputHandler (IChatRepository chatRepository, ChatContext chatContext) : IInputHandler
 {
     public async Task HandleAsync(string input)
     {

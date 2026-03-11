@@ -8,16 +8,14 @@ namespace ConsoleP2PChat.Infrastructure;
 public class ChatServer : IDisposable
 {
     private readonly IMessageHandler _messageHandler;
-    private readonly MessageInput _messageInput;
     private readonly ChatContext _chatContext;
     private TcpListener _listener;
     private CancellationTokenSource _tokenSource;
     private CancellationToken _token;
 
-    public ChatServer(int port, IMessageHandler messageHandler, MessageInput messageInput, ChatContext chatContext)
+    public ChatServer(int port, IMessageHandler messageHandler, ChatContext chatContext)
     {
         _messageHandler = messageHandler;
-        _messageInput = messageInput;
         _chatContext = chatContext;
         _listener = new TcpListener(IPAddress.Any, port);
         _tokenSource = new CancellationTokenSource();
@@ -32,11 +30,7 @@ public class ChatServer : IDisposable
         {
             var client = await _listener.AcceptTcpClientAsync(_token);
             var session = new ChatSession(client, _messageHandler);
-            if (_chatContext.CurrentSession is null)
-            {
-                _ = _messageInput.RunAsync(_token);
-                _chatContext.CurrentSession = session;
-            }
+            _chatContext.CurrentSession ??= session;
 
             _ = session.RunAsync(_token).ContinueWith(_ => session.Dispose(), _token);
         }
